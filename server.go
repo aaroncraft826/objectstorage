@@ -3,6 +3,7 @@ package objectstorage
 import "fmt"
 
 type Server struct {
+	port int
 }
 
 func (s Server) start() {
