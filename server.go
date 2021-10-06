@@ -7,7 +7,7 @@ type Server struct {
 	running bool
 }
 
-func (s Server) Start(port int) {
+func (s *Server) Start(port int) {
 	if s.running {
 		fmt.Println("ERROR: Server already running")
 		return
@@ -18,6 +18,6 @@ func (s Server) Start(port int) {
 	fmt.Println("Hello world! This is the Server")
 }
 
-func (s Server) Stop() {
+func (s *Server) Stop() {
 	s.running = false
 }
