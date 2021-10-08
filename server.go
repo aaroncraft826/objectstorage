@@ -96,6 +96,7 @@ func (s *Server) handleMessage(msg string, c net.Conn) int {
 }
 
 func (s *Server) put(key string, byteSize int, c net.Conn) {
+	writeAck(SUCCESS, c)
 	var obj = make([]byte, byteSize)
 
 	_, err := c.Read(obj)
