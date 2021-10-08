@@ -58,6 +58,7 @@ func (s *Server) handleConnection(c net.Conn) {
 			fmt.Println(err)
 			break
 		}
+		fmt.Println("Message Recieved: " + strings.TrimSpace(msgData))
 		if s.handleMessage(strings.TrimSpace(msgData), c) == 1 {
 			fmt.Println("Connection " + c.RemoteAddr().String() + " has been closed")
 			break
