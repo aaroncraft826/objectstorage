@@ -48,9 +48,9 @@ func (c *Client) Put(key string, obj []byte) error {
 func (c *Client) Get(key string) ([]byte, error) {
 	writeMsg(GET.String()+"|"+key, c.conn)
 
-	msgValues, rerr := readMsg(c.conn)
+	msgValues, _ := readMsg(c.conn)
 	msgType := msgValues[0]
-	byteSize, berr := strconv.Atoi(msgValues[1])
+	byteSize, _ := strconv.Atoi(msgValues[1])
 	if msgType != GET.String() {
 		writeAck(WRONGMSGERROR, c.conn)
 		return nil, errors.New("Recieved message of type " + msgType + " instead of type " + GET.String())
@@ -58,6 +58,7 @@ func (c *Client) Get(key string) ([]byte, error) {
 
 	var obj = make([]byte, byteSize)
 	val, rerr := c.conn.Read(obj)
+	_ = val
 
 	if rerr != nil {
 		writeAck(READERROR, c.conn)
@@ -79,8 +80,11 @@ func (c *Client) List() ([]string, error) {
 	}
 
 	msgValues, rerr := readMsg(c.conn)
+	if rerr != nil {
+		return nil, rerr
+	}
 	msgType := msgValues[0]
-	keyNum, kerr := strconv.Atoi(msgValues[1])
+	keyNum, _ := strconv.Atoi(msgValues[1])
 
 	if msgType != LIST.String() {
 		writeAck(WRONGMSGERROR, c.conn)

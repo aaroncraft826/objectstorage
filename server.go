@@ -2,6 +2,7 @@ package objectstorage
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -73,7 +74,7 @@ func (s *Server) handleMessage(msg string, c net.Conn) int {
 	switch msgType {
 	case PUT.String():
 		key := msgValues[1]
-		byteSize, err := strconv.Atoi(msgValues[2])
+		byteSize, _ := strconv.Atoi(msgValues[2])
 		s.put(key, byteSize, c)
 	case GET.String():
 		key := msgValues[1]
@@ -96,7 +97,7 @@ func (s *Server) handleMessage(msg string, c net.Conn) int {
 func (s *Server) put(key string, byteSize int, c net.Conn) {
 	var obj = make([]byte, byteSize)
 
-	val, err := c.Read(obj)
+	_, err := c.Read(obj)
 	if err != nil {
 		fmt.Println(err)
 		writeAck(FAILURE, c)
@@ -107,11 +108,11 @@ func (s *Server) put(key string, byteSize int, c net.Conn) {
 	writeAck(SUCCESS, c)
 }
 
-func (s *Server) get(key string, c net.Conn) {
+func (s *Server) get(key string, c net.Conn) error {
 	obj, found := s.dataStorage.Load(key)
 	if !found {
 		writeAck(EXISTERROR, c)
-		return
+		return errors.New("key already exists")
 	}
 	writeAck(SUCCESS, c)
 
@@ -119,8 +120,9 @@ func (s *Server) get(key string, c net.Conn) {
 	writeMsg(GET.String()+"|"+strconv.Itoa(byteSize), c)
 	c.Write(obj.([]byte))
 
-	msgData, err := bufio.NewReader(c).ReadString('\n')
+	msgData, _ := bufio.NewReader(c).ReadString('\n')
 	ackerr := handleAck(strings.TrimSpace(msgData), c)
+	return ackerr
 }
 
 func (s *Server) delete(key string, c net.Conn) {

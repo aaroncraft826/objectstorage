@@ -95,7 +95,6 @@ func handleAck(msg string, c net.Conn) error {
 	default:
 		return errors.New("ERROR: Unknown response from Acknowledge message")
 	}
-	return errors.New("ERROR: Unknown response from Acknowledge message")
 }
 
 func readMsg(c net.Conn) ([]string, error) {
