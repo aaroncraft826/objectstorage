@@ -57,13 +57,16 @@ func (s *Server) handleConnection(c net.Conn) {
 			fmt.Println(err)
 			break
 		}
-		s.handleMessage(strings.TrimSpace(msgData), c)
+		if s.handleMessage(strings.TrimSpace(msgData), c) == 1 {
+			fmt.Println("Connection " + c.RemoteAddr().String() + " has been closed")
+			break
+		}
 	}
 
 	c.Close()
 }
 
-func (s *Server) handleMessage(msg string, c net.Conn) {
+func (s *Server) handleMessage(msg string, c net.Conn) int {
 	msgValues := strings.Split(msg, "|")
 	msgType := msgValues[0]
 
@@ -80,11 +83,14 @@ func (s *Server) handleMessage(msg string, c net.Conn) {
 		s.delete(key, c)
 	case LIST.String():
 		s.list(c)
+	case DISCONNECT.String():
+		return 1
 	case ACKNOWLEDGE.String():
 		writeAck(FAILURE, c)
 	default:
 		writeAck(FAILURE, c)
 	}
+	return 0
 }
 
 func (s *Server) put(key string, byteSize int, c net.Conn) {
@@ -112,6 +118,9 @@ func (s *Server) get(key string, c net.Conn) {
 	byteSize := len(obj.([]byte))
 	writeMsg(GET.String()+"|"+strconv.Itoa(byteSize), c)
 	c.Write(obj.([]byte))
+
+	msgData, err := bufio.NewReader(c).ReadString('\n')
+	ackerr := handleAck(strings.TrimSpace(msgData), c)
 }
 
 func (s *Server) delete(key string, c net.Conn) {
