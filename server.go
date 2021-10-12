@@ -35,6 +35,7 @@ func (s *Server) Start(port int) {
 	s.dataStorage = sync.Map{}
 	for s.running {
 		conn, err := ln.Accept()
+		fmt.Println("Server connecting to client " + conn.RemoteAddr().Network())
 		if err != nil {
 			fmt.Println(err)
 		}

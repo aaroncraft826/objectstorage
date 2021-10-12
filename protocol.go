@@ -53,6 +53,7 @@ func (m msgValue) String() string {
 }
 
 func writeMsg(msg string, c net.Conn) error {
+	fmt.Println("Writing message: " + msg)
 	_, err := bufio.NewWriter(c).WriteString(msg)
 	if err != nil {
 		fmt.Println(err)
