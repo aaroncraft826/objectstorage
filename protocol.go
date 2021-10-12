@@ -54,11 +54,13 @@ func (m msgValue) String() string {
 
 func writeMsg(msg string, c net.Conn) error {
 	fmt.Println("Writing message: " + msg)
-	_, err := bufio.NewWriter(c).WriteString(msg)
+	writer := bufio.NewWriter(c)
+	_, err := writer.WriteString(msg + "\n")
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
+	writer.Flush()
 
 	msgData, err := bufio.NewReader(c).ReadString('\n')
 	if err != nil {
@@ -70,11 +72,13 @@ func writeMsg(msg string, c net.Conn) error {
 }
 
 func writeAck(m msgValue, c net.Conn) error {
-	_, err := bufio.NewWriter(c).WriteString(ACKNOWLEDGE.String() + "|" + m.String())
+	writer := bufio.NewWriter(c)
+	_, err := writer.WriteString(ACKNOWLEDGE.String() + "|" + m.String() + "\n")
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
+	writer.Flush()
 
 	return nil
 }
