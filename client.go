@@ -19,8 +19,9 @@ func (c *Client) Connect(addr string, port int) error {
 	servername := addr + ":" + strconv.Itoa(port)
 	conn, err := net.Dial("tcp", servername)
 	if err != nil {
-		return errors.New("Could not connect to server " + servername)
+		return err
 	}
+
 	c.conn = conn
 	c.addr = addr
 	c.port = port

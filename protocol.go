@@ -103,5 +103,6 @@ func readMsg(c net.Conn) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("Message Read: " + strings.TrimSpace(msgData))
 	return strings.Split(strings.TrimSpace(msgData), "|"), nil
 }

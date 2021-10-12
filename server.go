@@ -35,7 +35,7 @@ func (s *Server) Start(port int) {
 	s.dataStorage = sync.Map{}
 	for s.running {
 		conn, err := ln.Accept()
-		fmt.Println("Server connecting to client " + conn.RemoteAddr().Network())
+		fmt.Println("Server connecting to client " + conn.RemoteAddr().String())
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -52,15 +52,22 @@ func (s *Server) handleConnection(c net.Conn) {
 		c.Close()
 	}
 	s.clientNum++
+	fmt.Println("Connection to client " + c.RemoteAddr().String() + " is a Success")
 
 	for s.running {
-		msgData, err := bufio.NewReader(c).ReadString('\n')
+		/*msgData, err := bufio.NewReader(c).ReadString('\n')
 		if err != nil {
 			fmt.Println(err)
 			break
 		}
-		fmt.Println("Message Recieved: " + strings.TrimSpace(msgData))
-		if s.handleMessage(strings.TrimSpace(msgData), c) == 1 {
+		fmt.Println("Message Recieved: " + strings.TrimSpace(msgData))*/
+		msgValues, err := readMsg(c)
+		if err != nil {
+			fmt.Println(err)
+			break
+		}
+
+		if s.handleMessage(msgValues, c) == 1 {
 			fmt.Println("Connection " + c.RemoteAddr().String() + " has been closed")
 			break
 		}
@@ -69,8 +76,7 @@ func (s *Server) handleConnection(c net.Conn) {
 	c.Close()
 }
 
-func (s *Server) handleMessage(msg string, c net.Conn) int {
-	msgValues := strings.Split(msg, "|")
+func (s *Server) handleMessage(msgValues []string, c net.Conn) int {
 	msgType := msgValues[0]
 
 	switch msgType {
