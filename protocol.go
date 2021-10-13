@@ -94,6 +94,7 @@ func handleAck(msg string, c net.Conn) error {
 
 	switch ackVal {
 	case SUCCESS.String():
+		fmt.Println("Operation Success")
 		return nil
 	case FAILURE.String():
 		return errors.New("ERROR: Operation Failed")

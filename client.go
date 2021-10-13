@@ -91,6 +91,7 @@ func (c *Client) List() ([]string, error) {
 		writeAck(WRONGMSGERROR, c.conn)
 		return nil, errors.New("Recieved message of type " + msgType + " instead of type " + LIST.String())
 	}
+	writeAck(SUCCESS, c.conn)
 
 	keyList := make([]string, keyNum)
 	for i := 0; i < keyNum; i++ {
