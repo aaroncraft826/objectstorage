@@ -111,22 +111,3 @@ func readMsg(c net.Conn) ([]string, error) {
 	fmt.Println("Message Read: " + strings.TrimSpace(msgData))
 	return strings.Split(strings.TrimSpace(msgData), "|"), nil
 }
-
-func writeObj(obj []byte, c net.Conn) {
-	writer := bufio.NewWriter(c)
-	writer.Write(obj)
-}
-
-func readObj(obj []byte, c net.Conn) error {
-	reader := bufio.NewReader(c)
-	var b byte = 0
-	var err error = nil
-	for i, _ := range obj {
-		b, err = reader.ReadByte()
-		if err != nil {
-			return err
-		}
-		obj[i] = b
-	}
-	return nil
-}
