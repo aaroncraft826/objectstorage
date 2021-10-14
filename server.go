@@ -1,7 +1,6 @@
 package objectstorage
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"net"
@@ -131,9 +130,9 @@ func (s *Server) get(key string, c net.Conn) error {
 	n, _ := c.Write(obj.([]byte))
 	fmt.Println("Writing Object of Size " + strconv.Itoa(n))
 
-	msgData, _ := bufio.NewReader(c).ReadString('\n')
-	ackerr := handleAck(strings.TrimSpace(msgData), c)
-	return ackerr
+	/*msgData, _ := bufio.NewReader(c).ReadString('\n')
+	ackerr := handleAck(strings.TrimSpace(msgData), c)*/
+	return nil
 }
 
 func (s *Server) delete(key string, c net.Conn) {
