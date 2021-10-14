@@ -119,6 +119,14 @@ func writeObj(obj []byte, c net.Conn) {
 
 func readObj(obj []byte, c net.Conn) error {
 	reader := bufio.NewReader(c)
-	_, err := reader.Read(obj)
-	return err
+	var b byte = 0
+	var err error = nil
+	for i, _ := range obj {
+		b, err = reader.ReadByte()
+		if err != nil {
+			return err
+		}
+		obj[i] = b
+	}
+	return nil
 }
