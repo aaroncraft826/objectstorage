@@ -63,16 +63,17 @@ func (c *Client) Get(key string) ([]byte, error) {
 		writeAck(WRONGMSGERROR, c.conn)
 		return nil, errors.New("Recieved message of type " + msgType + " instead of type " + GET.String())
 	}
+	writeAck(SUCCESS, c.conn)
 
 	var obj = make([]byte, byteSize)
 	n, rerr := c.conn.Read(obj)
 	fmt.Println("Reading Object of Size " + strconv.Itoa(n))
 
 	if rerr != nil {
-		writeAck(READERROR, c.conn)
+		//writeAck(READERROR, c.conn)
 		return nil, rerr
 	}
-	writeAck(SUCCESS, c.conn)
+	//writeAck(SUCCESS, c.conn)
 	return obj, nil
 }
 
