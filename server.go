@@ -106,7 +106,8 @@ func (s *Server) put(key string, byteSize int, c net.Conn) {
 	writeAck(SUCCESS, c)
 	var obj = make([]byte, byteSize)
 
-	_, err := c.Read(obj)
+	//_, err := c.Read(obj)
+	err := readObj(obj, c)
 	if err != nil {
 		fmt.Println(err)
 		writeAck(FAILURE, c)
@@ -127,7 +128,8 @@ func (s *Server) get(key string, c net.Conn) error {
 
 	byteSize := len(obj.([]byte))
 	writeMsg(GET.String()+"|"+strconv.Itoa(byteSize), c)
-	c.Write(obj.([]byte))
+	//c.Write(obj.([]byte))
+	writeObj(obj.([]byte), c)
 
 	msgData, _ := bufio.NewReader(c).ReadString('\n')
 	ackerr := handleAck(strings.TrimSpace(msgData), c)

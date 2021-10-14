@@ -38,7 +38,8 @@ func (c *Client) Disconnect() error {
 
 func (c *Client) Put(key string, obj []byte) error {
 	writeMsg(PUT.String()+"|"+key+"|"+strconv.Itoa(len(obj)), c.conn)
-	c.conn.Write(obj)
+	//c.conn.Write(obj)
+	writeObj(obj, c.conn)
 	msgData, err := bufio.NewReader(c.conn).ReadString('\n')
 	if err != nil {
 		return err
@@ -58,8 +59,9 @@ func (c *Client) Get(key string) ([]byte, error) {
 	}
 
 	var obj = make([]byte, byteSize)
-	val, rerr := c.conn.Read(obj)
-	_ = val
+	/*val, rerr := c.conn.Read(obj)
+	_ = val*/
+	rerr := readObj(obj, c.conn)
 
 	if rerr != nil {
 		writeAck(READERROR, c.conn)

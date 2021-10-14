@@ -111,3 +111,14 @@ func readMsg(c net.Conn) ([]string, error) {
 	fmt.Println("Message Read: " + strings.TrimSpace(msgData))
 	return strings.Split(strings.TrimSpace(msgData), "|"), nil
 }
+
+func writeObj(obj []byte, c net.Conn) {
+	writer := bufio.NewWriter(c)
+	writer.Write(obj)
+}
+
+func readObj(obj []byte, c net.Conn) error {
+	reader := bufio.NewReader(c)
+	_, err := reader.Read(obj)
+	return err
+}
