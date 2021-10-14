@@ -53,7 +53,12 @@ func (c *Client) Get(key string) ([]byte, error) {
 
 	msgValues, _ := readMsg(c.conn)
 	msgType := msgValues[0]
-	byteSize, _ := strconv.Atoi(msgValues[1])
+	byteSize, converr := strconv.Atoi(msgValues[1])
+	if converr != nil {
+		writeAck(FAILURE, c.conn)
+		fmt.Println("FAILED TO CONVERT " + msgValues[1] + " TO INTEGER")
+		return nil, converr
+	}
 	if msgType != GET.String() {
 		writeAck(WRONGMSGERROR, c.conn)
 		return nil, errors.New("Recieved message of type " + msgType + " instead of type " + GET.String())
