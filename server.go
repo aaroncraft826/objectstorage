@@ -9,12 +9,14 @@ import (
 	"sync"
 )
 
+//Server is a struct that represents a server
 type Server struct {
 	port        int
 	clientMax   int
 	clientNum   int
 	running     bool
 	dataStorage sync.Map
+	serverGroup map[string]net.Conn
 }
 
 func (s *Server) Start(port int) {
@@ -32,9 +34,10 @@ func (s *Server) Start(port int) {
 	}
 
 	s.dataStorage = sync.Map{}
+	s.serverGroup = make(map[string]net.Conn)
 	for s.running {
 		conn, err := ln.Accept()
-		fmt.Println("Server connecting to client " + conn.RemoteAddr().String())
+		fmt.Println("Server connecting to foreign address " + conn.RemoteAddr().String())
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -47,19 +50,9 @@ func (s *Server) Stop() {
 }
 
 func (s *Server) handleConnection(c net.Conn) {
-	if s.clientMax >= 5 {
-		c.Close()
-	}
-	s.clientNum++
-	fmt.Println("Connection to client " + c.RemoteAddr().String() + " is a Success")
+	fmt.Println("Connection to address " + c.RemoteAddr().String() + " is a Success")
 
 	for s.running {
-		/*msgData, err := bufio.NewReader(c).ReadString('\n')
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
-		fmt.Println("Message Recieved: " + strings.TrimSpace(msgData))*/
 		msgValues, err := readMsg(c)
 		if err != nil {
 			fmt.Println(err)
@@ -67,7 +60,7 @@ func (s *Server) handleConnection(c net.Conn) {
 		}
 
 		if s.handleMessage(msgValues, c) == 1 {
-			fmt.Println("Connection " + c.RemoteAddr().String() + " has been closed")
+			fmt.Println("Connection to address " + c.RemoteAddr().String() + " has been closed")
 			break
 		}
 	}
@@ -91,6 +84,8 @@ func (s *Server) handleMessage(msgValues []string, c net.Conn) int {
 		s.delete(key, c)
 	case LIST.String():
 		s.list(c)
+	case CONNECT.String():
+		s.readConnMsg(msgValues[1], c)
 	case DISCONNECT.String():
 		return 1
 	case ACKNOWLEDGE.String():
@@ -99,6 +94,24 @@ func (s *Server) handleMessage(msgValues []string, c net.Conn) int {
 		writeAck(FAILURE, c)
 	}
 	return 0
+}
+
+func (s *Server) readConnMsg(connType string, c net.Conn) {
+	if connType == CLIENT.String() {
+		if s.clientMax >= 5 {
+			writeAck(FAILURE, c)
+			c.Close()
+			fmt.Println("Connection to address " + c.RemoteAddr().String() + " has been closed")
+		}
+		s.clientNum++
+		writeAck(SUCCESS, c)
+		fmt.Println("Connection to CLIENT " + c.RemoteAddr().String() + " is a Success")
+	} else if connType == SERVER.String() {
+		s.serverGroup[c.RemoteAddr().String()] = c
+		writeAck(SUCCESS, c)
+		fmt.Println("Connection to SERVER " + c.RemoteAddr().String() + " is a Success")
+	}
+	writeAck(FAILURE, c)
 }
 
 func (s *Server) put(key string, byteSize int, c net.Conn) {

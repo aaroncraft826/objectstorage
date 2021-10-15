@@ -15,6 +15,9 @@ const (
 	GET
 	DELETE
 	LIST
+	CONNECT
+	SERVER
+	CLIENT
 	DISCONNECT
 	ACKNOWLEDGE
 	SUCCESS
@@ -34,6 +37,12 @@ func (m msgValue) String() string {
 		return "DEL"
 	case LIST:
 		return "LIS"
+	case CONNECT:
+		return "CON"
+	case SERVER:
+		return "SER"
+	case CLIENT:
+		return "CLI"
 	case DISCONNECT:
 		return "DIS"
 	case ACKNOWLEDGE:
@@ -52,6 +61,7 @@ func (m msgValue) String() string {
 	return "UNKNOWN"
 }
 
+//writeMsg() a message string to the connection, then waits for an acknowledgement
 func writeMsg(msg string, c net.Conn) error {
 	fmt.Println("Writing message: " + msg)
 	writer := bufio.NewWriter(c)
@@ -71,6 +81,7 @@ func writeMsg(msg string, c net.Conn) error {
 	return handleAck(strings.TrimSpace(msgData), c)
 }
 
+//writeAck() takes a msgValue (usually SUCCESS or FAILURE) and sends out an acknowledgent with that value
 func writeAck(m msgValue, c net.Conn) error {
 	writer := bufio.NewWriter(c)
 	_, err := writer.WriteString(ACKNOWLEDGE.String() + "|" + m.String() + "\n")
@@ -83,6 +94,7 @@ func writeAck(m msgValue, c net.Conn) error {
 	return nil
 }
 
+//reads an acknowledgement string
 func handleAck(msg string, c net.Conn) error {
 	msgValues := strings.Split(msg, "|")
 	msgType := msgValues[0]
@@ -103,6 +115,7 @@ func handleAck(msg string, c net.Conn) error {
 	}
 }
 
+//reads a message string and tokenizes it into values (DOES NOT SEND ACKNOWLEDGEMENT)
 func readMsg(c net.Conn) ([]string, error) {
 	msgData, err := bufio.NewReader(c).ReadString('\n')
 	if err != nil {

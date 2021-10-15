@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+//Client is a struct that represents a client
 type Client struct {
 	addr      string
 	port      int
@@ -16,9 +17,16 @@ type Client struct {
 	conn      net.Conn
 }
 
+//Connect connects to a server
 func (c *Client) Connect(addr string, port int) error {
 	servername := addr + ":" + strconv.Itoa(port)
 	conn, err := net.Dial("tcp", servername)
+	if err != nil {
+		return err
+	}
+
+	//tell server that your a client
+	err = writeMsg(CONNECT.String()+"|"+CLIENT.String(), conn)
 	if err != nil {
 		return err
 	}
@@ -30,6 +38,7 @@ func (c *Client) Connect(addr string, port int) error {
 	return nil
 }
 
+//Disconnect disconnects from the server
 func (c *Client) Disconnect() error {
 	writeMsg(DISCONNECT.String(), c.conn)
 	c.conn.Close()
@@ -37,6 +46,7 @@ func (c *Client) Disconnect() error {
 	return nil
 }
 
+//Put takes an object and puts its value into the key space (creates new key if key does not exist)
 func (c *Client) Put(key string, obj []byte) error {
 	writeMsg(PUT.String()+"|"+key+"|"+strconv.Itoa(len(obj)), c.conn)
 	n, _ := c.conn.Write(obj)
@@ -48,6 +58,7 @@ func (c *Client) Put(key string, obj []byte) error {
 	return handleAck(strings.TrimSpace(msgData), c.conn)
 }
 
+//gets the key's object from the server
 func (c *Client) Get(key string) ([]byte, error) {
 	writeMsg(GET.String()+"|"+key, c.conn)
 
@@ -77,11 +88,13 @@ func (c *Client) Get(key string) ([]byte, error) {
 	return obj, nil
 }
 
+//deletes a key in the server
 func (c *Client) Delete(key string) error {
 	err := writeMsg(DELETE.String()+"|"+key, c.conn)
 	return err
 }
 
+//Lists all objects in the server
 func (c *Client) List() ([]string, error) {
 	err := writeMsg(LIST.String(), c.conn)
 	if err != nil {
