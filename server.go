@@ -19,7 +19,7 @@ type Server struct {
 	serverGroup sync.Map
 }
 
-//starts server
+//starts server NOTE: If using multiple servers on the same main method, you may want to call this method on a goroutine
 func (s *Server) Start(port int) {
 	if s.running {
 		fmt.Println("ERROR: Server already running")
@@ -175,14 +175,17 @@ func (s *Server) readConnMsg(connType string, c net.Conn) {
 			writeAck(FAILURE, c)
 			c.Close()
 			fmt.Println("Connection to address " + c.RemoteAddr().String() + " has been closed")
+			return
 		}
 		s.clientNum++
 		writeAck(SUCCESS, c)
 		fmt.Println("Connection to CLIENT " + c.RemoteAddr().String() + " is a Success")
+		return
 	} else if connType == SERVER.String() {
 		s.serverGroup.Store(c.RemoteAddr().String(), c)
 		writeAck(SUCCESS, c)
 		fmt.Println("Connection to SERVER " + c.RemoteAddr().String() + " is a Success")
+		return
 	}
 	writeAck(FAILURE, c)
 }
