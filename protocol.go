@@ -15,6 +15,7 @@ const (
 	GET
 	DELETE
 	LIST
+	LISTSERVERS
 	CONNECT
 	SERVER
 	CLIENT
@@ -37,6 +38,8 @@ func (m msgValue) String() string {
 		return "DEL"
 	case LIST:
 		return "LIS"
+	case LISTSERVERS:
+		return "LSE"
 	case CONNECT:
 		return "CON"
 	case SERVER:
