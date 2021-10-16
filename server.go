@@ -185,6 +185,7 @@ func (s *Server) handleReadConnMsg(connType string, c net.Conn) {
 		return
 	} else if connType == SERVER.String() {
 		s.serverGroup.Store(c.RemoteAddr().String(), c)
+		go s.handleConnection(c)
 		writeAck(SUCCESS, c)
 		fmt.Println("Connection to SERVER " + c.RemoteAddr().String() + " is a Success")
 		return
@@ -247,7 +248,8 @@ func (s *Server) handleList(c net.Conn, connType string) {
 
 	if connType == CLIENT.String() {
 		s.serverGroup.Range(func(key, value interface{}) bool {
-			skList, err := s.list(value.(net.Conn))
+			var sc = value.(net.Conn)
+			skList, err := s.list(sc)
 			if err == nil {
 				keyList = append(keyList, skList...)
 			}
