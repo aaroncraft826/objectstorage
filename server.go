@@ -186,7 +186,6 @@ func (s *Server) handleReadConnMsg(connType string, c net.Conn) {
 		return
 	} else if connType == SERVER.String() {
 		s.serverGroup.Store(c.RemoteAddr().String(), c)
-		//go s.handleConnection(c)
 		writeAck(SUCCESS, c)
 		fmt.Println("Connection to SERVER " + c.RemoteAddr().String() + " is a Success")
 		return
