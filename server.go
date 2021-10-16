@@ -1,6 +1,7 @@
 package objectstorage
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"net"
@@ -268,4 +269,52 @@ func (s *Server) serverList(c net.Conn) {
 	}
 
 	writeMsg(sb.String(), c)
+}
+
+//serverPut takes an object and puts its value into the key space of another server (creates new key if key does not exist)
+func (s *Server) serverPut(key string, obj []byte, c net.Conn) error {
+	writeMsg(PUT.String()+"|"+key+"|"+strconv.Itoa(len(obj)), c)
+	n, _ := c.Write(obj)
+	fmt.Println("Writing Object of Size " + strconv.Itoa(n))
+	msgData, err := bufio.NewReader(c).ReadString('\n')
+	if err != nil {
+		return err
+	}
+	return handleAck(strings.TrimSpace(msgData), c)
+}
+
+//gets the key's object from the server
+func (s *Server) serverGet(key string, c net.Conn) ([]byte, error) {
+	writeMsg(GET.String()+"|"+key, c)
+
+	msgValues, _ := readMsg(c)
+	msgType := msgValues[0]
+	byteSize, converr := strconv.Atoi(msgValues[1])
+	if converr != nil {
+		writeAck(FAILURE, c)
+		fmt.Println("FAILED TO CONVERT " + msgValues[1] + " TO INTEGER")
+		return nil, converr
+	}
+	if msgType != GET.String() {
+		writeAck(WRONGMSGERROR, c)
+		return nil, errors.New("Recieved message of type " + msgType + " instead of type " + GET.String())
+	}
+	writeAck(SUCCESS, c)
+
+	var obj = make([]byte, byteSize)
+	n, rerr := c.Read(obj)
+	fmt.Println("Reading Object of Size " + strconv.Itoa(n))
+
+	if rerr != nil {
+		//writeAck(READERROR, c.conn)
+		return nil, rerr
+	}
+	//writeAck(SUCCESS, c.conn)
+	return obj, nil
+}
+
+//deletes a key in the server
+func (s *Server) serverDelete(key string, c net.Conn) error {
+	err := writeMsg(DELETE.String()+"|"+key, c)
+	return err
 }

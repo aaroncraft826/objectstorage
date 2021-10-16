@@ -113,6 +113,8 @@ func handleAck(msg string, c net.Conn) error {
 		return nil
 	case FAILURE.String():
 		return errors.New("ERROR: Operation Failed")
+	case EXISTERROR.String():
+		return errors.New("ERROR: Existence Error")
 	default:
 		return errors.New("ERROR: Unknown response from Acknowledge message")
 	}
