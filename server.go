@@ -237,7 +237,9 @@ func (s *Server) handleDelete(key string, c net.Conn) {
 
 //handles List messages
 func (s *Server) handleList(c net.Conn, connType string) {
-	writeAck(SUCCESS, c)
+	if connType != SERVER.String() {
+		writeAck(SUCCESS, c)
+	}
 
 	var sb strings.Builder
 	sb.WriteString(LIST.String() + "|")
@@ -288,7 +290,7 @@ func (s *Server) handleServerList(c net.Conn) {
 	writeMsg(sb.String(), c)
 }
 
-//serverPut takes an object and puts its value into the key space of another server (creates new key if key does not exist)
+//put takes an object and puts its value into the key space of another server (creates new key if key does not exist)
 func (s *Server) put(key string, obj []byte, c net.Conn) error {
 	writeMsg(PUT.String()+"|"+key+"|"+strconv.Itoa(len(obj)), c)
 	n, _ := c.Write(obj)
@@ -330,13 +332,13 @@ func (s *Server) get(key string, c net.Conn) ([]byte, error) {
 	return obj, nil
 }
 
-//deletes a key in the server
+//deletes a key in the target server
 func (s *Server) delete(key string, c net.Conn) error {
 	err := writeMsg(DELETE.String()+"|"+key, c)
 	return err
 }
 
-//Lists all objects in the server
+//Lists all objects in the target server
 func (s *Server) list(c net.Conn) ([]string, error) {
 	err := writeMsg(LIST.String()+"|"+SERVER.String(), c)
 	if err != nil {
