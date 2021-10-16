@@ -91,7 +91,7 @@ func (s *Server) connect(servername string) (net.Conn, error) {
 	}
 
 	s.serverGroup.Store(conn.RemoteAddr().String(), conn)
-	//go s.handleConnection(conn)
+	go s.handleConnection(conn)
 	return conn, nil
 }
 
@@ -186,7 +186,7 @@ func (s *Server) handleReadConnMsg(connType string, c net.Conn) {
 		return
 	} else if connType == SERVER.String() {
 		s.serverGroup.Store(c.RemoteAddr().String(), c)
-		go s.handleConnection(c)
+		//go s.handleConnection(c)
 		writeAck(SUCCESS, c)
 		fmt.Println("Connection to SERVER " + c.RemoteAddr().String() + " is a Success")
 		return
