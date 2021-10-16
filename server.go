@@ -266,6 +266,7 @@ func (s *Server) handleList(c net.Conn, connType string) {
 		sb.WriteString("|" + key)
 	}
 
+	writeAck(SUCCESS, c)
 	writeMsg(sb.String(), c)
 }
 
