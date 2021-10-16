@@ -245,11 +245,15 @@ func (s *Server) handleList(c net.Conn, connType string) {
 		return true
 	})
 
-	/*s.serverGroup.Range(func(key, value interface{}) bool {
-		keyList = append(keyList, key.(string))
-		s.list(value.(net.Conn))
-		return true
-	})*/
+	if connType == CLIENT.String() {
+		s.serverGroup.Range(func(key, value interface{}) bool {
+			skList, err := s.list(value.(net.Conn))
+			if err == nil {
+				keyList = append(keyList, skList...)
+			}
+			return true
+		})
+	}
 
 	sb.WriteString(strconv.Itoa(len(keyList)))
 	for _, key := range keyList {
