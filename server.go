@@ -343,7 +343,6 @@ func (s *Server) list(c net.Conn) ([]string, error) {
 		return nil, err
 	}
 
-	readMsg(c)
 	msgValues, rerr := readMsg(c)
 	if rerr != nil {
 		return nil, rerr
