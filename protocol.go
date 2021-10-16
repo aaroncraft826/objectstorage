@@ -104,7 +104,7 @@ func handleAck(msg string, c net.Conn) error {
 	ackVal := msgValues[1]
 
 	if msgType != ACKNOWLEDGE.String() {
-		return errors.New("ERROR: Acknowledge message is not of type ACKNOWLEDGE")
+		return errors.New("ERROR: Acknowledge message of type " + msgType + " instead of type ACKNOWLEDGE")
 	}
 
 	switch ackVal {
