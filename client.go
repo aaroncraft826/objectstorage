@@ -96,7 +96,7 @@ func (c *Client) Delete(key string) error {
 
 //Lists all objects in the server
 func (c *Client) List() ([]string, error) {
-	err := writeMsg(LIST.String(), c.conn)
+	err := writeMsg(LIST.String()+"|"+CLIENT.String(), c.conn)
 	if err != nil {
 		return nil, err
 	}

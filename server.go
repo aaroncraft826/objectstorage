@@ -146,19 +146,20 @@ func (s *Server) handleMessage(msgValues []string, c net.Conn) int {
 	case PUT.String():
 		key := msgValues[1]
 		byteSize, _ := strconv.Atoi(msgValues[2])
-		s.put(key, byteSize, c)
+		s.handlePut(key, byteSize, c)
 	case GET.String():
 		key := msgValues[1]
-		s.get(key, c)
+		s.handleGet(key, c)
 	case DELETE.String():
 		key := msgValues[1]
-		s.delete(key, c)
+		s.handleDelete(key, c)
 	case LIST.String():
-		s.list(c)
+		connType := msgValues[1]
+		s.handleList(c, connType)
 	case LISTSERVERS.String():
-		s.serverList(c)
+		s.handleServerList(c)
 	case CONNECT.String():
-		s.readConnMsg(msgValues[1], c)
+		s.handleReadConnMsg(msgValues[1], c)
 	case DISCONNECT.String():
 		return 1
 	case ACKNOWLEDGE.String():
@@ -170,7 +171,7 @@ func (s *Server) handleMessage(msgValues []string, c net.Conn) int {
 }
 
 //handles Connection messages
-func (s *Server) readConnMsg(connType string, c net.Conn) {
+func (s *Server) handleReadConnMsg(connType string, c net.Conn) {
 	if connType == CLIENT.String() {
 		if s.clientMax >= 5 {
 			writeAck(FAILURE, c)
@@ -192,7 +193,7 @@ func (s *Server) readConnMsg(connType string, c net.Conn) {
 }
 
 //handles Put messages
-func (s *Server) put(key string, byteSize int, c net.Conn) {
+func (s *Server) handlePut(key string, byteSize int, c net.Conn) {
 	writeAck(SUCCESS, c)
 	var obj = make([]byte, byteSize)
 
@@ -209,7 +210,7 @@ func (s *Server) put(key string, byteSize int, c net.Conn) {
 }
 
 //handles Get messages
-func (s *Server) get(key string, c net.Conn) error {
+func (s *Server) handleGet(key string, c net.Conn) error {
 	obj, found := s.dataStorage.Load(key)
 	if !found {
 		writeAck(EXISTERROR, c)
@@ -226,13 +227,13 @@ func (s *Server) get(key string, c net.Conn) error {
 }
 
 //handles Delete messages
-func (s *Server) delete(key string, c net.Conn) {
+func (s *Server) handleDelete(key string, c net.Conn) {
 	s.dataStorage.Delete(key)
 	writeAck(SUCCESS, c)
 }
 
 //handles List messages
-func (s *Server) list(c net.Conn) {
+func (s *Server) handleList(c net.Conn, connType string) {
 	writeAck(SUCCESS, c)
 
 	var sb strings.Builder
@@ -243,6 +244,13 @@ func (s *Server) list(c net.Conn) {
 		keyList = append(keyList, key.(string))
 		return true
 	})
+
+	/*s.serverGroup.Range(func(key, value interface{}) bool {
+		keyList = append(keyList, key.(string))
+		s.list(value.(net.Conn))
+		return true
+	})*/
+
 	sb.WriteString(strconv.Itoa(len(keyList)))
 	for _, key := range keyList {
 		sb.WriteString("|" + key)
@@ -252,7 +260,7 @@ func (s *Server) list(c net.Conn) {
 }
 
 //handles list server messages
-func (s *Server) serverList(c net.Conn) {
+func (s *Server) handleServerList(c net.Conn) {
 	writeAck(SUCCESS, c)
 
 	var sb strings.Builder
@@ -272,7 +280,7 @@ func (s *Server) serverList(c net.Conn) {
 }
 
 //serverPut takes an object and puts its value into the key space of another server (creates new key if key does not exist)
-func (s *Server) serverPut(key string, obj []byte, c net.Conn) error {
+func (s *Server) put(key string, obj []byte, c net.Conn) error {
 	writeMsg(PUT.String()+"|"+key+"|"+strconv.Itoa(len(obj)), c)
 	n, _ := c.Write(obj)
 	fmt.Println("Writing Object of Size " + strconv.Itoa(n))
@@ -284,7 +292,7 @@ func (s *Server) serverPut(key string, obj []byte, c net.Conn) error {
 }
 
 //gets the key's object from the server
-func (s *Server) serverGet(key string, c net.Conn) ([]byte, error) {
+func (s *Server) get(key string, c net.Conn) ([]byte, error) {
 	writeMsg(GET.String()+"|"+key, c)
 
 	msgValues, _ := readMsg(c)
@@ -314,7 +322,35 @@ func (s *Server) serverGet(key string, c net.Conn) ([]byte, error) {
 }
 
 //deletes a key in the server
-func (s *Server) serverDelete(key string, c net.Conn) error {
+func (s *Server) delete(key string, c net.Conn) error {
 	err := writeMsg(DELETE.String()+"|"+key, c)
 	return err
+}
+
+//Lists all objects in the server
+func (s *Server) list(c net.Conn) ([]string, error) {
+	err := writeMsg(LIST.String()+"|"+SERVER.String(), c)
+	if err != nil {
+		return nil, err
+	}
+
+	msgValues, rerr := readMsg(c)
+	if rerr != nil {
+		return nil, rerr
+	}
+	msgType := msgValues[0]
+	keyNum, _ := strconv.Atoi(msgValues[1])
+
+	if msgType != LIST.String() {
+		writeAck(WRONGMSGERROR, c)
+		return nil, errors.New("Recieved message of type " + msgType + " instead of type " + LIST.String())
+	}
+	writeAck(SUCCESS, c)
+
+	keyList := make([]string, keyNum)
+	for i := 0; i < keyNum; i++ {
+		keyList[i] = msgValues[i+2]
+	}
+
+	return keyList, nil
 }
