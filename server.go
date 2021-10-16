@@ -237,6 +237,7 @@ func (s *Server) handleDelete(key string, c net.Conn) {
 
 //handles List messages
 func (s *Server) handleList(c net.Conn, connType string) {
+	writeAck(SUCCESS, c)
 
 	var sb strings.Builder
 	sb.WriteString(LIST.String() + "|")
@@ -259,7 +260,6 @@ func (s *Server) handleList(c net.Conn, connType string) {
 		})
 	}
 
-	writeAck(SUCCESS, c)
 	sb.WriteString(strconv.Itoa(len(keyList)))
 	for _, key := range keyList {
 		sb.WriteString("|" + key)
@@ -343,6 +343,7 @@ func (s *Server) list(c net.Conn) ([]string, error) {
 		return nil, err
 	}
 
+	readMsg(c)
 	msgValues, rerr := readMsg(c)
 	if rerr != nil {
 		return nil, rerr
