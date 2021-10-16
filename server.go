@@ -250,6 +250,7 @@ func (s *Server) handleList(c net.Conn, connType string) {
 		s.serverGroup.Range(func(key, value interface{}) bool {
 			var sc = value.(net.Conn)
 			skList, err := s.list(sc)
+			fmt.Println("-------------SKLIST: " + strings.Join(skList, ", ") + "-----------------------")
 			if err == nil {
 				keyList = append(keyList, skList...)
 			}
