@@ -91,7 +91,7 @@ func (s *Server) connect(servername string) (net.Conn, error) {
 	}
 
 	s.serverGroup.Store(conn.RemoteAddr(), conn)
-	go s.handleConnection(conn)
+	//go s.handleConnection(conn)
 	return conn, nil
 }
 
@@ -190,8 +190,9 @@ func (s *Server) handleReadConnMsg(connType string, c net.Conn) {
 		writeAck(SUCCESS, c)
 		fmt.Println("Connection to SERVER " + c.RemoteAddr().String() + " is a Success")
 		return
+	} else {
+		writeAck(FAILURE, c)
 	}
-	writeAck(FAILURE, c)
 }
 
 //handles Put messages
