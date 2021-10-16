@@ -236,7 +236,7 @@ func (s *Server) handleDelete(key string, c net.Conn) {
 
 //handles List messages
 func (s *Server) handleList(c net.Conn, connType string) {
-	writeAck(SUCCESS, c)
+	//writeAck(SUCCESS, c)
 
 	var sb strings.Builder
 	sb.WriteString(LIST.String() + "|")
