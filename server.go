@@ -121,7 +121,7 @@ func (s *Server) GetServerList(c net.Conn) ([]string, error) {
 
 //handles connections
 func (s *Server) handleConnection(c net.Conn) {
-	fmt.Println("Connection to address " + c.RemoteAddr().String() + " is a Success")
+	fmt.Println("Connection to address " + c.RemoteAddr().String() + " is a now being handled")
 
 	for s.running {
 		msgValues, err := readMsg(c)
@@ -131,11 +131,11 @@ func (s *Server) handleConnection(c net.Conn) {
 		}
 
 		if s.handleMessage(msgValues, c) == 1 {
-			fmt.Println("Connection to address " + c.RemoteAddr().String() + " has been closed")
 			break
 		}
 	}
 
+	fmt.Println("Connection to address " + c.RemoteAddr().String() + " has been closed")
 	c.Close()
 }
 
@@ -255,6 +255,8 @@ func (s *Server) handleList(c net.Conn, connType string) {
 			fmt.Println("-------------SKLIST: " + strings.Join(skList, ", ") + "-----------------------")
 			if err == nil {
 				keyList = append(keyList, skList...)
+			} else {
+				println("---------------------" + err.Error() + "----------------------")
 			}
 			return true
 		})
