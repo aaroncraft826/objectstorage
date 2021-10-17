@@ -111,7 +111,8 @@ func (c *Connection) writeAck(m msgValue) error {
 func (c *Connection) handleAck(msg string) error {
 	msgValues := strings.Split(msg, "|")
 	for msgValues[0] == DUMMY.String() {
-		msgValues = strings.Split(msg, "|")
+		msgData, _ := c.reader.ReadString('\n')
+		msgValues = strings.Split(strings.TrimSpace(msgData), "|")
 	}
 	msgType := msgValues[0]
 	ackVal := msgValues[1]
