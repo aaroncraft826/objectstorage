@@ -18,6 +18,7 @@ type Server struct {
 	running     bool
 	dataStorage sync.Map
 	serverGroup sync.Map
+	mu          sync.Mutex
 }
 
 //starts server NOTE: If using multiple servers on the same main method, you may want to call this method on a goroutine
@@ -37,6 +38,7 @@ func (s *Server) Start(port int) {
 
 	s.dataStorage = sync.Map{}
 	s.serverGroup = sync.Map{}
+	s.mu = sync.Mutex{}
 	for s.running {
 		conn, err := ln.Accept()
 		fmt.Println("Server connecting to foreign address " + conn.RemoteAddr().String())
@@ -98,14 +100,15 @@ func (s *Server) connect(servername string) (*Connection, error) {
 
 //gets list of a group's servers
 func (s *Server) GetServerList(c Connection) ([]string, error) {
+	s.mu.Lock()
 	err := c.writeMsg(LISTSERVERS.String())
+	s.mu.Unlock()
 	if err != nil {
 		return nil, err
 	}
 
 	msgValues, err := c.readMsg()
 	if err != nil {
-		println("ITS AT GET SERVER LIST" + err.Error())
 		//c.writeAck(FAILURE)
 		return nil, err
 	}
