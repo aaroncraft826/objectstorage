@@ -91,6 +91,7 @@ func (s *Server) connect(servername string) (net.Conn, error) {
 	}
 
 	s.serverGroup.Store(conn.RemoteAddr().String(), conn)
+	handleAck(SUCCESS.String(), conn)
 	go s.handleConnection(conn)
 	return conn, nil
 }
