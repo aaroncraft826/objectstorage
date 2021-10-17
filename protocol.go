@@ -115,11 +115,10 @@ func (c *Connection) handleAck(msg string) error {
 		msgValues = strings.Split(strings.TrimSpace(msgData), "|")
 	}
 	msgType := msgValues[0]
-	ackVal := msgValues[1]
-
 	if msgType != ACKNOWLEDGE.String() {
 		return errors.New("ERROR: Acknowledge message of type " + msgType + " instead of type ACKNOWLEDGE")
 	}
+	ackVal := msgValues[1]
 
 	switch ackVal {
 	case SUCCESS.String():
