@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 )
 
 //Server is a struct that represents a server
@@ -167,7 +166,6 @@ func (s *Server) handleMessage(msgValues []string, c Connection) int {
 	case CONNECT.String():
 		s.handleReadConnMsg(msgValues[1], &c)
 	case DUMMY.String():
-		time.Sleep(1 * time.Second)
 		return 0
 	case DISCONNECT.String():
 		return 1
@@ -195,7 +193,7 @@ func (s *Server) handleReadConnMsg(connType string, c *Connection) {
 		return
 	} else if connType == SERVER.String() {
 		c.remoteType = SERVER
-		s.serverGroup.Store(c.netConn.RemoteAddr().String(), c)
+		s.serverGroup.Store(c.netConn.RemoteAddr().String(), *c)
 		c.writeAck(SUCCESS)
 		fmt.Println("Connection to SERVER " + c.netConn.RemoteAddr().String() + " is a Success")
 		return
