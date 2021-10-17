@@ -63,9 +63,11 @@ func (s *Server) Connect(addr string, port int) error {
 		return nil
 	}
 
+	s.mu.Lock()
 	serverList, err := s.GetServerList(*hostConn)
 	if err != nil {
-		return nil
+		s.mu.Unlock()
+		return err
 	}
 	println("Server Group: ")
 	println(strings.Join(serverList, ", "))
@@ -75,6 +77,7 @@ func (s *Server) Connect(addr string, port int) error {
 			s.connect(server)
 		}
 	}
+	s.mu.Unlock()
 	return nil
 }
 
@@ -131,7 +134,7 @@ func (s *Server) handleConnection(c Connection) {
 	for s.running {
 		msgValues, err := c.readMsg()
 		if err != nil {
-			println("ITS AT HANDLECONNECTION" + err.Error())
+			println("ITS AT HANDLECONNECTION " + err.Error())
 			fmt.Println(err.Error())
 			break
 		}
@@ -147,7 +150,6 @@ func (s *Server) handleConnection(c Connection) {
 
 //handles incoming messages in string[] form
 func (s *Server) handleMessage(msgValues []string, c Connection) int {
-	s.mu.Lock()
 	msgType := msgValues[0]
 
 	switch msgType {
@@ -169,14 +171,12 @@ func (s *Server) handleMessage(msgValues []string, c Connection) int {
 	case CONNECT.String():
 		s.handleReadConnMsg(msgValues[1], &c)
 	case DISCONNECT.String():
-		s.mu.Unlock()
 		return 1
 	case ACKNOWLEDGE.String():
 		c.writeAck(FAILURE)
 	default:
 		c.writeAck(FAILURE)
 	}
-	s.mu.Unlock()
 	return 0
 }
 
