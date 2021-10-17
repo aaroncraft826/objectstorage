@@ -105,10 +105,10 @@ func (s *Server) GetServerList(c Connection) ([]string, error) {
 
 	msgValues, err := c.readMsg()
 	if err != nil {
-		c.writeAck(FAILURE)
+		//c.writeAck(FAILURE)
 		return nil, err
 	}
-	c.writeAck(SUCCESS)
+	//c.writeAck(SUCCESS)
 
 	size, err := strconv.Atoi(msgValues[1])
 	if err != nil {
