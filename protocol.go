@@ -110,7 +110,7 @@ func (c *Connection) writeAck(m msgValue) error {
 //reads an acknowledgement string
 func (c *Connection) handleAck(msg string) error {
 	msgValues := strings.Split(msg, "|")
-	for msgValues[0] != DUMMY.String() {
+	for msgValues[0] == DUMMY.String() {
 		msgValues = strings.Split(msg, "|")
 	}
 	msgType := msgValues[0]
