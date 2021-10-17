@@ -51,7 +51,7 @@ func (c *Client) Disconnect() error {
 //Put takes an object and puts its value into the key space (creates new key if key does not exist)
 func (c *Client) Put(key string, obj []byte) error {
 	c.conn.writeMsg(PUT.String() + "|" + key + "|" + strconv.Itoa(len(obj)))
-	n, _ := c.conn.writer.Write(obj)
+	n, _ := c.conn.netConn.Write(obj)
 	fmt.Println("Writing Object of Size " + strconv.Itoa(n))
 	msgData, err := c.conn.reader.ReadString('\n')
 	if err != nil {

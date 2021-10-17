@@ -207,7 +207,7 @@ func (s *Server) handlePut(key string, byteSize int, c Connection) {
 	c.writeAck(SUCCESS)
 	var obj = make([]byte, byteSize)
 
-	n, err := c.reader.Read(obj)
+	n, err := c.netConn.Read(obj)
 	fmt.Println("Reading Object of Size " + strconv.Itoa(n))
 	if err != nil {
 		fmt.Println(err)
