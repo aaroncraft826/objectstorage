@@ -139,9 +139,9 @@ func (c *Connection) readMsg() ([]string, error) {
 	fmt.Println("Message Read: " + strings.TrimSpace(msgData))
 
 	var output = strings.Split(strings.TrimSpace(msgData), "|")
-	if output[0] == ACKNOWLEDGE.String() {
+	/*if output[0] == ACKNOWLEDGE.String() {
 		return output, errors.New("read Message of type acknowledge")
-	}
+	}*/
 	return output, nil
 }
 

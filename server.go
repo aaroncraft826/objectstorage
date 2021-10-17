@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 //Server is a struct that represents a server
@@ -166,6 +167,7 @@ func (s *Server) handleMessage(msgValues []string, c Connection) int {
 	case CONNECT.String():
 		s.handleReadConnMsg(msgValues[1], &c)
 	case DUMMY.String():
+		time.Sleep(1 * time.Second)
 		return 0
 	case DISCONNECT.String():
 		return 1
