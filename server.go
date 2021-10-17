@@ -346,7 +346,6 @@ func (s *Server) list(c net.Conn) ([]string, error) {
 
 	msgValues, rerr := readMsg(c)
 	if rerr != nil {
-		fmt.Println(rerr.Error())
 		return nil, rerr
 	}
 	msgType := msgValues[0]
