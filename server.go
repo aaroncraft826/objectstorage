@@ -259,8 +259,6 @@ func (s *Server) handleList(c net.Conn, connType string) {
 			}
 			return true
 		})
-	} else {
-		writeAck(SUCCESS, c)
 	}
 
 	sb.WriteString(strconv.Itoa(len(keyList)))
