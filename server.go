@@ -100,9 +100,7 @@ func (s *Server) connect(servername string) (*Connection, error) {
 
 //gets list of a group's servers
 func (s *Server) GetServerList(c Connection) ([]string, error) {
-	s.mu.Lock()
 	err := c.writeMsg(LISTSERVERS.String())
-	s.mu.Unlock()
 	if err != nil {
 		return nil, err
 	}
@@ -149,6 +147,7 @@ func (s *Server) handleConnection(c Connection) {
 
 //handles incoming messages in string[] form
 func (s *Server) handleMessage(msgValues []string, c Connection) int {
+	s.mu.Lock()
 	msgType := msgValues[0]
 
 	switch msgType {
@@ -170,12 +169,14 @@ func (s *Server) handleMessage(msgValues []string, c Connection) int {
 	case CONNECT.String():
 		s.handleReadConnMsg(msgValues[1], &c)
 	case DISCONNECT.String():
+		s.mu.Unlock()
 		return 1
 	case ACKNOWLEDGE.String():
 		c.writeAck(FAILURE)
 	default:
 		c.writeAck(FAILURE)
 	}
+	s.mu.Unlock()
 	return 0
 }
 
