@@ -18,7 +18,6 @@ type Server struct {
 	running     bool
 	dataStorage sync.Map
 	serverGroup sync.Map
-	mu          sync.Mutex
 }
 
 //starts server NOTE: If using multiple servers on the same main method, you may want to call this method on a goroutine
@@ -38,7 +37,6 @@ func (s *Server) Start(port int) {
 
 	s.dataStorage = sync.Map{}
 	s.serverGroup = sync.Map{}
-	s.mu = sync.Mutex{}
 	for s.running {
 		conn, err := ln.Accept()
 		fmt.Println("Server connecting to foreign address " + conn.RemoteAddr().String())
@@ -63,10 +61,8 @@ func (s *Server) Connect(addr string, port int) error {
 		return nil
 	}
 
-	s.mu.Lock()
 	serverList, err := s.GetServerList(*hostConn)
 	if err != nil {
-		s.mu.Unlock()
 		return err
 	}
 	println("Server Group: ")
@@ -77,7 +73,6 @@ func (s *Server) Connect(addr string, port int) error {
 			s.connect(server)
 		}
 	}
-	s.mu.Unlock()
 	return nil
 }
 
@@ -167,9 +162,7 @@ func (s *Server) handleMessage(msgValues []string, c Connection) int {
 		connType := msgValues[1]
 		s.handleList(c, connType)
 	case LISTSERVERS.String():
-		s.mu.Lock()
 		s.handleServerList(c)
-		s.mu.Unlock()
 	case CONNECT.String():
 		s.handleReadConnMsg(msgValues[1], &c)
 	case DISCONNECT.String():
@@ -284,7 +277,7 @@ func (s *Server) handleList(c Connection, connType string) {
 
 //handles list server messages
 func (s *Server) handleServerList(c Connection) {
-	c.writeAck(SUCCESS)
+	//c.writeAck(SUCCESS)
 
 	var sb strings.Builder
 	sb.WriteString(LISTSERVERS.String() + "|")
