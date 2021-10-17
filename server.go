@@ -105,6 +105,7 @@ func (s *Server) GetServerList(c Connection) ([]string, error) {
 
 	msgValues, err := c.readMsg()
 	if err != nil {
+		println("ITS AT GET SERVER LIST" + err.Error())
 		//c.writeAck(FAILURE)
 		return nil, err
 	}
@@ -129,7 +130,8 @@ func (s *Server) handleConnection(c Connection) {
 	for s.running {
 		msgValues, err := c.readMsg()
 		if err != nil {
-			fmt.Println(err)
+			println("ITS AT HANDLECONNECTION" + err.Error())
+			fmt.Println(err.Error())
 			break
 		}
 
