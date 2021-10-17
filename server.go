@@ -43,7 +43,7 @@ func (s *Server) Start(port int) {
 		if err != nil {
 			fmt.Println(err)
 		}
-		go s.handleConnection(conn)
+		go s.handleConnection(Connection{netConn: conn, writer: bufio.NewWriter(conn), reader: bufio.NewReader(conn)})
 	}
 }
 
@@ -61,7 +61,7 @@ func (s *Server) Connect(addr string, port int) error {
 		return nil
 	}
 
-	serverList, err := s.GetServerList(hostConn)
+	serverList, err := s.GetServerList(*hostConn)
 	if err != nil {
 		return nil
 	}
@@ -69,7 +69,7 @@ func (s *Server) Connect(addr string, port int) error {
 	println(strings.Join(serverList, ", "))
 
 	for _, server := range serverList {
-		if server != hostConn.LocalAddr().String() {
+		if server != hostConn.netConn.LocalAddr().String() {
 			s.connect(server)
 		}
 	}
@@ -77,35 +77,38 @@ func (s *Server) Connect(addr string, port int) error {
 }
 
 // connects to a foreign server and adds it to the caller server's serverGroup NOTE: ADDRESS MUST INCLUE :PORT
-func (s *Server) connect(servername string) (net.Conn, error) {
+func (s *Server) connect(servername string) (*Connection, error) {
 	//servername := addr + ":" + strconv.Itoa(port)
 	conn, err := net.Dial("tcp", servername)
 	if err != nil {
 		return nil, err
 	}
+	connStruct := Connection{netConn: conn, writer: bufio.NewWriter(conn), reader: bufio.NewReader(conn), remoteType: SERVER}
 
 	//tell server that your a Server
-	err = writeMsg(CONNECT.String()+"|"+SERVER.String(), conn)
+	err = connStruct.writeMsg(CONNECT.String() + "|" + SERVER.String())
 	if err != nil {
 		return nil, err
 	}
 
-	s.serverGroup.Store(conn.RemoteAddr().String(), conn)
-	go s.handleConnection(conn)
-	return conn, nil
+	s.serverGroup.Store(conn.RemoteAddr().String(), connStruct)
+	go s.handleConnection(connStruct)
+	return &connStruct, nil
 }
 
 //gets list of a group's servers
-func (s *Server) GetServerList(c net.Conn) ([]string, error) {
-	err := writeMsg(LISTSERVERS.String(), c)
+func (s *Server) GetServerList(c Connection) ([]string, error) {
+	err := c.writeMsg(LISTSERVERS.String())
 	if err != nil {
 		return nil, err
 	}
 
-	msgValues, err := readMsg(c)
+	msgValues, err := c.readMsg()
 	if err != nil {
+		c.writeAck(FAILURE)
 		return nil, err
 	}
+	c.writeAck(SUCCESS)
 
 	size, err := strconv.Atoi(msgValues[1])
 	if err != nil {
@@ -120,11 +123,11 @@ func (s *Server) GetServerList(c net.Conn) ([]string, error) {
 }
 
 //handles connections
-func (s *Server) handleConnection(c net.Conn) {
-	fmt.Println("Connection to address " + c.RemoteAddr().String() + " is a now being handled")
+func (s *Server) handleConnection(c Connection) {
+	fmt.Println("Connection to address " + c.netConn.RemoteAddr().String() + " is a now being handled")
 
 	for s.running {
-		msgValues, err := readMsg(c)
+		msgValues, err := c.readMsg()
 		if err != nil {
 			fmt.Println(err)
 			break
@@ -135,12 +138,12 @@ func (s *Server) handleConnection(c net.Conn) {
 		}
 	}
 
-	fmt.Println("Connection to address " + c.RemoteAddr().String() + " has been closed")
-	c.Close()
+	fmt.Println("Connection to address " + c.netConn.RemoteAddr().String() + " has been closed")
+	c.netConn.Close()
 }
 
 //handles incoming messages in string[] form
-func (s *Server) handleMessage(msgValues []string, c net.Conn) int {
+func (s *Server) handleMessage(msgValues []string, c Connection) int {
 	msgType := msgValues[0]
 
 	switch msgType {
@@ -160,83 +163,85 @@ func (s *Server) handleMessage(msgValues []string, c net.Conn) int {
 	case LISTSERVERS.String():
 		s.handleServerList(c)
 	case CONNECT.String():
-		s.handleReadConnMsg(msgValues[1], c)
+		s.handleReadConnMsg(msgValues[1], &c)
 	case DISCONNECT.String():
 		return 1
 	case ACKNOWLEDGE.String():
-		writeAck(FAILURE, c)
+		c.writeAck(FAILURE)
 	default:
-		writeAck(FAILURE, c)
+		c.writeAck(FAILURE)
 	}
 	return 0
 }
 
 //handles Connection messages
-func (s *Server) handleReadConnMsg(connType string, c net.Conn) {
+func (s *Server) handleReadConnMsg(connType string, c *Connection) {
 	if connType == CLIENT.String() {
 		if s.clientMax >= 5 {
-			writeAck(FAILURE, c)
-			c.Close()
-			fmt.Println("Connection to address " + c.RemoteAddr().String() + " has been closed")
+			c.writeAck(FAILURE)
+			c.netConn.Close()
+			fmt.Println("Connection to address " + c.netConn.RemoteAddr().String() + " has been closed")
 			return
 		}
+		c.remoteType = CLIENT
 		s.clientNum++
-		writeAck(SUCCESS, c)
-		fmt.Println("Connection to CLIENT " + c.RemoteAddr().String() + " is a Success")
+		c.writeAck(SUCCESS)
+		fmt.Println("Connection to CLIENT " + c.netConn.RemoteAddr().String() + " is a Success")
 		return
 	} else if connType == SERVER.String() {
-		s.serverGroup.Store(c.RemoteAddr().String(), c)
-		writeAck(SUCCESS, c)
-		fmt.Println("Connection to SERVER " + c.RemoteAddr().String() + " is a Success")
+		c.remoteType = SERVER
+		s.serverGroup.Store(c.netConn.RemoteAddr().String(), c)
+		c.writeAck(SUCCESS)
+		fmt.Println("Connection to SERVER " + c.netConn.RemoteAddr().String() + " is a Success")
 		return
 	} else {
-		writeAck(FAILURE, c)
+		c.writeAck(FAILURE)
 	}
 }
 
 //handles Put messages
-func (s *Server) handlePut(key string, byteSize int, c net.Conn) {
-	writeAck(SUCCESS, c)
+func (s *Server) handlePut(key string, byteSize int, c Connection) {
+	c.writeAck(SUCCESS)
 	var obj = make([]byte, byteSize)
 
-	n, err := c.Read(obj)
+	n, err := c.reader.Read(obj)
 	fmt.Println("Reading Object of Size " + strconv.Itoa(n))
 	if err != nil {
 		fmt.Println(err)
-		writeAck(FAILURE, c)
+		c.writeAck(FAILURE)
 		return
 	}
 
 	s.dataStorage.Store(key, obj)
-	writeAck(SUCCESS, c)
+	c.writeAck(SUCCESS)
 }
 
 //handles Get messages
-func (s *Server) handleGet(key string, c net.Conn) error {
+func (s *Server) handleGet(key string, c Connection) error {
 	obj, found := s.dataStorage.Load(key)
 	if !found {
-		writeAck(EXISTERROR, c)
+		c.writeAck(EXISTERROR)
 		return errors.New("key already exists")
 	}
-	writeAck(SUCCESS, c)
+	c.writeAck(SUCCESS)
 
 	byteSize := len(obj.([]byte))
-	writeMsg(GET.String()+"|"+strconv.Itoa(byteSize), c)
-	n, _ := c.Write(obj.([]byte))
+	c.writeMsg(GET.String() + "|" + strconv.Itoa(byteSize))
+	n, _ := c.writer.Write(obj.([]byte))
 	fmt.Println("Writing Object of Size " + strconv.Itoa(n))
 
 	return nil
 }
 
 //handles Delete messages
-func (s *Server) handleDelete(key string, c net.Conn) {
+func (s *Server) handleDelete(key string, c Connection) {
 	s.dataStorage.Delete(key)
-	writeAck(SUCCESS, c)
+	c.writeAck(SUCCESS)
 }
 
 //handles List messages
-func (s *Server) handleList(c net.Conn, connType string) {
-	writeAck(SUCCESS, c)
+func (s *Server) handleList(c Connection, connType string) {
+	c.writeAck(SUCCESS)
 
 	var sb strings.Builder
 	sb.WriteString(LIST.String() + "|")
@@ -249,7 +254,7 @@ func (s *Server) handleList(c net.Conn, connType string) {
 
 	if connType == CLIENT.String() {
 		s.serverGroup.Range(func(key, value interface{}) bool {
-			var sc = value.(net.Conn)
+			var sc = value.(Connection)
 			skList, err := s.list(sc)
 			fmt.Println("-------------SKLIST: " + strings.Join(skList, ", ") + "-----------------------")
 			if err == nil {
@@ -266,12 +271,12 @@ func (s *Server) handleList(c net.Conn, connType string) {
 		sb.WriteString("|" + key)
 	}
 
-	writeMsg(sb.String(), c)
+	c.writeMsg(sb.String())
 }
 
 //handles list server messages
-func (s *Server) handleServerList(c net.Conn) {
-	writeAck(SUCCESS, c)
+func (s *Server) handleServerList(c Connection) {
+	c.writeAck(SUCCESS)
 
 	var sb strings.Builder
 	sb.WriteString(LISTSERVERS.String() + "|")
@@ -286,41 +291,41 @@ func (s *Server) handleServerList(c net.Conn) {
 		sb.WriteString("|" + key)
 	}
 
-	writeMsg(sb.String(), c)
+	c.writeMsg(sb.String())
 }
 
 //put takes an object and puts its value into the key space of another server (creates new key if key does not exist)
-func (s *Server) put(key string, obj []byte, c net.Conn) error {
-	writeMsg(PUT.String()+"|"+key+"|"+strconv.Itoa(len(obj)), c)
-	n, _ := c.Write(obj)
+func (s *Server) put(key string, obj []byte, c Connection) error {
+	c.writeMsg(PUT.String() + "|" + key + "|" + strconv.Itoa(len(obj)))
+	n, _ := c.writer.Write(obj)
 	fmt.Println("Writing Object of Size " + strconv.Itoa(n))
-	msgData, err := bufio.NewReader(c).ReadString('\n')
+	msgData, err := c.reader.ReadString('\n')
 	if err != nil {
 		return err
 	}
-	return handleAck(strings.TrimSpace(msgData), c)
+	return c.handleAck(strings.TrimSpace(msgData))
 }
 
 //gets the key's object from the server
-func (s *Server) get(key string, c net.Conn) ([]byte, error) {
-	writeMsg(GET.String()+"|"+key, c)
+func (s *Server) get(key string, c Connection) ([]byte, error) {
+	c.writeMsg(GET.String() + "|" + key)
 
-	msgValues, _ := readMsg(c)
+	msgValues, _ := c.readMsg()
 	msgType := msgValues[0]
 	byteSize, converr := strconv.Atoi(msgValues[1])
 	if converr != nil {
-		writeAck(FAILURE, c)
+		c.writeAck(FAILURE)
 		fmt.Println("FAILED TO CONVERT " + msgValues[1] + " TO INTEGER")
 		return nil, converr
 	}
 	if msgType != GET.String() {
-		writeAck(WRONGMSGERROR, c)
+		c.writeAck(WRONGMSGERROR)
 		return nil, errors.New("Recieved message of type " + msgType + " instead of type " + GET.String())
 	}
-	writeAck(SUCCESS, c)
+	c.writeAck(SUCCESS)
 
 	var obj = make([]byte, byteSize)
-	n, rerr := c.Read(obj)
+	n, rerr := c.reader.Read(obj)
 	fmt.Println("Reading Object of Size " + strconv.Itoa(n))
 
 	if rerr != nil {
@@ -332,19 +337,19 @@ func (s *Server) get(key string, c net.Conn) ([]byte, error) {
 }
 
 //deletes a key in the target server
-func (s *Server) delete(key string, c net.Conn) error {
-	err := writeMsg(DELETE.String()+"|"+key, c)
+func (s *Server) delete(key string, c Connection) error {
+	err := c.writeMsg(DELETE.String() + "|" + key)
 	return err
 }
 
 //Lists all objects in the target server
-func (s *Server) list(c net.Conn) ([]string, error) {
-	err := writeMsg(LIST.String()+"|"+SERVER.String(), c)
+func (s *Server) list(c Connection) ([]string, error) {
+	err := c.writeMsg(LIST.String() + "|" + SERVER.String())
 	if err != nil {
 		return nil, err
 	}
 
-	msgValues, rerr := readMsg(c)
+	msgValues, rerr := c.readMsg()
 	if rerr != nil {
 		return nil, rerr
 	}
@@ -352,10 +357,10 @@ func (s *Server) list(c net.Conn) ([]string, error) {
 	keyNum, _ := strconv.Atoi(msgValues[1])
 
 	if msgType != LIST.String() {
-		writeAck(WRONGMSGERROR, c)
+		c.writeAck(WRONGMSGERROR)
 		return nil, errors.New("Recieved message of type " + msgType + " instead of type " + LIST.String())
 	}
-	writeAck(SUCCESS, c)
+	c.writeAck(SUCCESS)
 
 	keyList := make([]string, keyNum)
 	for i := 0; i < keyNum; i++ {

@@ -14,7 +14,7 @@ type Client struct {
 	addr      string
 	port      int
 	connected bool
-	conn      net.Conn
+	conn      Connection
 }
 
 //Connect connects to a server
@@ -25,13 +25,15 @@ func (c *Client) Connect(addr string, port int) error {
 		return err
 	}
 
+	connStruct := Connection{netConn: conn, writer: bufio.NewWriter(conn), reader: bufio.NewReader(conn), remoteType: SERVER}
+
 	//tell server that your a client
-	err = writeMsg(CONNECT.String()+"|"+CLIENT.String(), conn)
+	err = connStruct.writeMsg(CONNECT.String() + "|" + CLIENT.String())
 	if err != nil {
 		return err
 	}
 
-	c.conn = conn
+	c.conn = connStruct
 	c.addr = addr
 	c.port = port
 	c.connected = true
@@ -40,44 +42,44 @@ func (c *Client) Connect(addr string, port int) error {
 
 //Disconnect disconnects from the server
 func (c *Client) Disconnect() error {
-	writeMsg(DISCONNECT.String(), c.conn)
-	c.conn.Close()
+	c.conn.writeMsg(DISCONNECT.String())
+	c.conn.netConn.Close()
 	c.connected = false
 	return nil
 }
 
 //Put takes an object and puts its value into the key space (creates new key if key does not exist)
 func (c *Client) Put(key string, obj []byte) error {
-	writeMsg(PUT.String()+"|"+key+"|"+strconv.Itoa(len(obj)), c.conn)
-	n, _ := c.conn.Write(obj)
+	c.conn.writeMsg(PUT.String() + "|" + key + "|" + strconv.Itoa(len(obj)))
+	n, _ := c.conn.writer.Write(obj)
 	fmt.Println("Writing Object of Size " + strconv.Itoa(n))
-	msgData, err := bufio.NewReader(c.conn).ReadString('\n')
+	msgData, err := c.conn.reader.ReadString('\n')
 	if err != nil {
 		return err
 	}
-	return handleAck(strings.TrimSpace(msgData), c.conn)
+	return c.conn.handleAck(strings.TrimSpace(msgData))
 }
 
 //gets the key's object from the server
 func (c *Client) Get(key string) ([]byte, error) {
-	writeMsg(GET.String()+"|"+key, c.conn)
+	c.conn.writeMsg(GET.String() + "|" + key)
 
-	msgValues, _ := readMsg(c.conn)
+	msgValues, _ := c.conn.readMsg()
 	msgType := msgValues[0]
 	byteSize, converr := strconv.Atoi(msgValues[1])
 	if converr != nil {
-		writeAck(FAILURE, c.conn)
+		c.conn.writeAck(FAILURE)
 		fmt.Println("FAILED TO CONVERT " + msgValues[1] + " TO INTEGER")
 		return nil, converr
 	}
 	if msgType != GET.String() {
-		writeAck(WRONGMSGERROR, c.conn)
+		c.conn.writeAck(WRONGMSGERROR)
 		return nil, errors.New("Recieved message of type " + msgType + " instead of type " + GET.String())
 	}
-	writeAck(SUCCESS, c.conn)
+	c.conn.writeAck(SUCCESS)
 
 	var obj = make([]byte, byteSize)
-	n, rerr := c.conn.Read(obj)
+	n, rerr := c.conn.reader.Read(obj)
 	fmt.Println("Reading Object of Size " + strconv.Itoa(n))
 
 	if rerr != nil {
@@ -90,18 +92,18 @@ func (c *Client) Get(key string) ([]byte, error) {
 
 //deletes a key in the server
 func (c *Client) Delete(key string) error {
-	err := writeMsg(DELETE.String()+"|"+key, c.conn)
+	err := c.conn.writeMsg(DELETE.String() + "|" + key)
 	return err
 }
 
 //Lists all objects in the server
 func (c *Client) List() ([]string, error) {
-	err := writeMsg(LIST.String()+"|"+CLIENT.String(), c.conn)
+	err := c.conn.writeMsg(LIST.String() + "|" + CLIENT.String())
 	if err != nil {
 		return nil, err
 	}
 
-	msgValues, rerr := readMsg(c.conn)
+	msgValues, rerr := c.conn.readMsg()
 	if rerr != nil {
 		return nil, rerr
 	}
@@ -109,10 +111,10 @@ func (c *Client) List() ([]string, error) {
 	keyNum, _ := strconv.Atoi(msgValues[1])
 
 	if msgType != LIST.String() {
-		writeAck(WRONGMSGERROR, c.conn)
+		c.conn.writeAck(WRONGMSGERROR)
 		return nil, errors.New("Recieved message of type " + msgType + " instead of type " + LIST.String())
 	}
-	writeAck(SUCCESS, c.conn)
+	c.conn.writeAck(SUCCESS)
 
 	keyList := make([]string, keyNum)
 	for i := 0; i < keyNum; i++ {

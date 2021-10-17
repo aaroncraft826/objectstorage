@@ -64,41 +64,48 @@ func (m msgValue) String() string {
 	return "UNKNOWN"
 }
 
+//wrapper for net.Conn, so that we don't need to rewrite bufio writer/reader
+//, It is vital that netConn, writer and reader are all initialized
+type Connection struct {
+	netConn    net.Conn
+	writer     *bufio.Writer
+	reader     *bufio.Reader
+	remoteType msgValue
+}
+
 //writeMsg() a message string to the connection, then waits for an acknowledgement
-func writeMsg(msg string, c net.Conn) error {
+func (c *Connection) writeMsg(msg string) error {
 	fmt.Println("Writing message: " + msg)
-	writer := bufio.NewWriter(c)
-	_, err := writer.WriteString(msg + "\n")
+	_, err := c.writer.WriteString(msg + "\n")
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
-	writer.Flush()
+	c.writer.Flush()
 
-	msgData, err := bufio.NewReader(c).ReadString('\n')
+	msgData, err := c.reader.ReadString('\n')
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
 
-	return handleAck(strings.TrimSpace(msgData), c)
+	return c.handleAck(strings.TrimSpace(msgData))
 }
 
 //writeAck() takes a msgValue (usually SUCCESS or FAILURE) and sends out an acknowledgent with that value
-func writeAck(m msgValue, c net.Conn) error {
-	writer := bufio.NewWriter(c)
-	_, err := writer.WriteString(ACKNOWLEDGE.String() + "|" + m.String() + "\n")
+func (c *Connection) writeAck(m msgValue) error {
+	_, err := c.writer.WriteString(ACKNOWLEDGE.String() + "|" + m.String() + "\n")
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
-	writer.Flush()
+	c.writer.Flush()
 
 	return nil
 }
 
 //reads an acknowledgement string
-func handleAck(msg string, c net.Conn) error {
+func (c *Connection) handleAck(msg string) error {
 	msgValues := strings.Split(msg, "|")
 	msgType := msgValues[0]
 	ackVal := msgValues[1]
@@ -121,8 +128,8 @@ func handleAck(msg string, c net.Conn) error {
 }
 
 //reads a message string and tokenizes it into values (DOES NOT SEND ACKNOWLEDGEMENT)
-func readMsg(c net.Conn) ([]string, error) {
-	msgData, err := bufio.NewReader(c).ReadString('\n')
+func (c *Connection) readMsg() ([]string, error) {
+	msgData, err := c.reader.ReadString('\n')
 	if err != nil {
 		return nil, err
 	}
