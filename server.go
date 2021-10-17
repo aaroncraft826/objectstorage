@@ -277,7 +277,8 @@ func (s *Server) handleList(c Connection, connType string) {
 
 //handles list server messages
 func (s *Server) handleServerList(c Connection) {
-	//c.writeAck(SUCCESS)
+	c.writeAck(SUCCESS)
+	c.writeAck(SUCCESS)
 
 	var sb strings.Builder
 	sb.WriteString(LISTSERVERS.String() + "|")
