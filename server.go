@@ -167,7 +167,9 @@ func (s *Server) handleMessage(msgValues []string, c Connection) int {
 		connType := msgValues[1]
 		s.handleList(c, connType)
 	case LISTSERVERS.String():
+		s.mu.Lock()
 		s.handleServerList(c)
+		s.mu.Unlock()
 	case CONNECT.String():
 		s.handleReadConnMsg(msgValues[1], &c)
 	case DISCONNECT.String():
