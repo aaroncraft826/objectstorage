@@ -341,7 +341,6 @@ func (s *Server) delete(key string, c net.Conn) error {
 func (s *Server) list(c net.Conn) ([]string, error) {
 	err := writeMsg(LIST.String()+"|"+SERVER.String(), c)
 	if err != nil {
-		println("ERROR IS HERESASFSDFASDFSDFASDFASDFASDFS")
 		return nil, err
 	}
 

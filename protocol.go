@@ -127,5 +127,10 @@ func readMsg(c net.Conn) ([]string, error) {
 		return nil, err
 	}
 	fmt.Println("Message Read: " + strings.TrimSpace(msgData))
-	return strings.Split(strings.TrimSpace(msgData), "|"), nil
+
+	var output = strings.Split(strings.TrimSpace(msgData), "|")
+	if output[0] == ACKNOWLEDGE.String() {
+		return output, errors.New("Error read message of type ACKNOWLEDGE")
+	}
+	return output, nil
 }
