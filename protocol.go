@@ -144,3 +144,15 @@ func (c *Connection) readMsg() ([]string, error) {
 	}
 	return output, nil
 }
+
+//Writes a dummy message to bypass read's
+func (c *Connection) writeDummy() error {
+	fmt.Println("Writing Dummy")
+	_, err := c.writer.WriteString(DUMMY.String() + "\n")
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+	c.writer.Flush()
+	return nil
+}

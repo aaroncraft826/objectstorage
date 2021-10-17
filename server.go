@@ -245,7 +245,7 @@ func (s *Server) handleDelete(key string, c Connection) {
 //handles List messages
 func (s *Server) handleList(c Connection, connType string) {
 	if connType == SERVER.String() {
-		c.writeMsg(DUMMY.String())
+		c.writeDummy()
 	}
 	c.writeAck(SUCCESS)
 
@@ -282,7 +282,7 @@ func (s *Server) handleList(c Connection, connType string) {
 
 //handles list server messages
 func (s *Server) handleServerList(c Connection) {
-	c.writeMsg(DUMMY.String())
+	c.writeDummy()
 	c.writeAck(SUCCESS)
 
 	var sb strings.Builder
