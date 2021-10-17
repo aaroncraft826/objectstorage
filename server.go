@@ -165,6 +165,8 @@ func (s *Server) handleMessage(msgValues []string, c Connection) int {
 		s.handleServerList(c)
 	case CONNECT.String():
 		s.handleReadConnMsg(msgValues[1], &c)
+	case DUMMY.String():
+		return 0
 	case DISCONNECT.String():
 		return 1
 	case ACKNOWLEDGE.String():
@@ -242,6 +244,9 @@ func (s *Server) handleDelete(key string, c Connection) {
 
 //handles List messages
 func (s *Server) handleList(c Connection, connType string) {
+	if connType == SERVER.String() {
+		c.writeMsg(DUMMY.String())
+	}
 	c.writeAck(SUCCESS)
 
 	var sb strings.Builder
@@ -277,7 +282,7 @@ func (s *Server) handleList(c Connection, connType string) {
 
 //handles list server messages
 func (s *Server) handleServerList(c Connection) {
-	c.writeAck(SUCCESS)
+	c.writeMsg(DUMMY.String())
 	c.writeAck(SUCCESS)
 
 	var sb strings.Builder

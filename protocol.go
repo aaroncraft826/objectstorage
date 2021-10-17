@@ -23,6 +23,7 @@ const (
 	ACKNOWLEDGE
 	SUCCESS
 	FAILURE
+	DUMMY
 	EXISTERROR
 	READERROR
 	WRONGMSGERROR
@@ -54,6 +55,8 @@ func (m msgValue) String() string {
 		return "SUC"
 	case FAILURE:
 		return "FAI"
+	case DUMMY:
+		return "DUM"
 	case EXISTERROR:
 		return "ER1"
 	case READERROR:
