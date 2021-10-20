@@ -1,2 +1,2 @@
 # DistributedObjectStorage
-Stores arbitrary objects with a distributed group of servers, that can be accessed through client objects
+Stores arbitrary objects inside a server struct, which can be accessed through multiple clients
